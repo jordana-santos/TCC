@@ -1,0 +1,4 @@
+//favoriteDTO
+//inscriptionDTO
+//CheckinDTO
+
