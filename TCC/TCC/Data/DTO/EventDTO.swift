@@ -29,11 +29,11 @@ struct EventDTO: Codable {
     let imageURL: String?
     let status: String
     let producerId: UUID
-    let locations: [LocationDTO]
+    let location: LocationDTO?
     let eventCategories: [EventCategoryLinkDTO]
 
     enum CodingKeys: String, CodingKey {
-        case id, title, description, price, status, locations
+        case id, title, description, price, status
         case startsAt = "starts_at"
         case endsAt = "ends_at"
         case capacityMax = "capacity_max"
@@ -41,6 +41,7 @@ struct EventDTO: Codable {
         case externalLink = "external_link"
         case imageURL = "image_url"
         case producerId = "producer_id"
+        case location = "locations"
         case eventCategories = "event_categories"
     }
 
@@ -51,7 +52,7 @@ struct EventDTO: Codable {
               externalLink: externalLink, imageURL: imageURL,
               status: EventStatus(rawValue: status) ?? .draft,
               producerId: producerId,
-              location: locations.first?.toEntity() ?? Location(address: "", latitude: 0, longitude: 0),
+              location: location?.toEntity() ?? Location(address: "", latitude: 0, longitude: 0),
               categories: eventCategories.map { $0.category.toEntity() })
     }
 }

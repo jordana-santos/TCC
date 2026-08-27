@@ -5,9 +5,10 @@ import Supabase
 final class SupabaseEventRepository: EventRepository {
     private let dataSource = EventDS()
 
-    func fetchEvents() async throws -> [Event] {
-        try await dataSource.fetchEvents().map { $0.toEntity() }
+    func fetchEvents(filter: EventFilter) async throws -> [Event] {
+        try await dataSource.fetchEvents(filter: filter).map { $0.toEntity() }
     }
+    
     func fetchEvent(id: UUID) async throws -> Event {
         try await dataSource.fetchEvent(id: id).toEntity()
     }

@@ -20,8 +20,28 @@ final class EventDS {
     private let client = SupabaseManager.shared
     private let embed = "*, locations(*), event_categories(categories(*))"
 
-    func fetchEvents() async throws -> [EventDTO] {
-        try await client.from("events").select(embed).eq("status", value: "published").execute().value
+    func fetchEvents(filter: EventFilter) async throws -> [EventDTO] {
+        let needsCategoryJoin = filter.categoryId != nil
+        var query = client.from("events")
+            .select(needsCategoryJoin
+                ? "*, locations(*), event_categories!inner(categories(*))"
+                : "*, locations(*), event_categories(categories(*))")
+            .eq("status", value: "published")
+
+        if let categoryId = filter.categoryId {
+            query = query.eq("event_categories.category_id", value: categoryId)
+        }
+        if let startDate = filter.startDate {
+            query = query.gte("starts_at", value: startDate)
+        }
+        if let endDate = filter.endDate {
+            query = query.lte("starts_at", value: endDate)
+        }
+        if let maxPrice = filter.maxPrice {
+            query = query.lte("price", value: (maxPrice as NSDecimalNumber).doubleValue)
+        }
+
+        return try await query.execute().value
     }
 
     func fetchEvent(id: UUID) async throws -> EventDTO {
