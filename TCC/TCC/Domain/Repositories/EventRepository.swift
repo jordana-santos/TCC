@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 protocol EventRepository {
     func fetchEvents() async throws -> [Event]

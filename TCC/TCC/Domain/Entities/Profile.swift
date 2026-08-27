@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 struct Profile: Identifiable {
     let id: UUID
@@ -9,7 +9,7 @@ struct Profile: Identifiable {
     var updatedAt: Date
 }
 
-enum AccountType {
+enum AccountType: String {
     case attendee
     case producer
 }

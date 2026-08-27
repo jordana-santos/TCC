@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 protocol EngagementRepository {
     func addFavorite(eventId: UUID) async throws

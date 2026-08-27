@@ -1,7 +1,12 @@
-//
-//  CategoryDTO.swift
-//  TCC
-//
-//  Created by Jordana Lourenço Santos on 24/08/26.
-//
 
+import Foundation
+
+struct CategoryDTO: Codable {
+    let id: UUID
+    let name: String
+    let description: String?
+
+    func toEntity() -> Category {
+        Category(id: id, name: name, description: description)
+    }
+}

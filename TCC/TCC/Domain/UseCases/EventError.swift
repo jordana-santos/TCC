@@ -2,7 +2,7 @@
 //aplica >uma< regra (por exemplo bloquear se o evento estiver lotado) antes de chamar o repository
 //se usa quando tem uma regra especifica
 
-import SwiftUI
+import Foundation
 
 enum EventError: Error {
     case full

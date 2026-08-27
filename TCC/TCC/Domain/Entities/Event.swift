@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 struct Event: Identifiable {
     let id: UUID
@@ -28,7 +28,7 @@ struct Event: Identifiable {
     }
 }
 
-enum EventStatus {
+enum EventStatus: String {
     case draft
     case published
     case cancelled

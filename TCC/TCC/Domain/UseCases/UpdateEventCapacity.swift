@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 struct UpdateEventCapacity {
     let repository: EventRepository

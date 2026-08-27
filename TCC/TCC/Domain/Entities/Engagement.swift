@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 struct Favorite: Identifiable {
     let id: UUID

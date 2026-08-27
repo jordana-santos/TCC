@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 struct MarkGoing {
     let repository: EngagementRepository

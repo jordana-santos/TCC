@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 struct CheckIn {
     let repository: EngagementRepository

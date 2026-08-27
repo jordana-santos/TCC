@@ -1,5 +1,5 @@
 
-import SwiftUI
+import Foundation
 
 protocol ProfileRepository {
     func fetchCurrentProfile() async throws -> Profile
