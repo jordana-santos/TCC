@@ -12,11 +12,11 @@ struct ContentView: View {
                 Section("Categorias (\(categories.count))") {
                     if categories.isEmpty {
                         Text("Nenhuma categoria carregada ainda")
-                            .font(AppFont.body)
+                            .font(AppFont.corpo)
                     }
                     ForEach(categories) { category in
                         Text(category.name)
-                            .font(AppFont.body)
+                            .font(AppFont.corpo)
                     }
                 }
 
@@ -24,7 +24,7 @@ struct ContentView: View {
                     Section("Teste") {
                         ForEach(Array(log.enumerated()), id: \.offset) { _, line in
                             Text(line)
-                                .font(AppFont.caption)
+                                .font(AppFont.legenda)
                         }
                     }
                 }
