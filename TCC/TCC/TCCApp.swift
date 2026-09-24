@@ -18,12 +18,7 @@ struct TCCApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EventListView(
-                viewModel: EventListVM(
-                    eventRepository: SupabaseEventRepository(),
-                    categoryRepository: SupabaseCategoryRepository()
-                )
-            )
+            RootView()
         }
         .modelContainer(sharedModelContainer)
     }

@@ -1,43 +1,30 @@
-
 import SwiftUI
 
 struct EventListView: View {
     @StateObject private var viewModel: EventListVM
+    @State private var showFilters = false
+    let router: Router
 
-    init(viewModel: EventListVM) {
+    init(viewModel: EventListVM, router: Router) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.router = router
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                header
                 searchBar
                 categoryChips
                 eventsList
             }
             .padding(.horizontal, 16)
-            .padding(.top, 4)
             .padding(.bottom, 96)
         }
         .background(AppColor.fundo.ignoresSafeArea())
-        .task { await viewModel.load() }
-    }
-
-    private var header: some View {
-        HStack {
-            Text("Descobrir")
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
-                .foregroundStyle(AppColor.textoPrimario)
-            Spacer()
-            Circle()
-                .fill(AppColor.primaria)
-                .frame(width: 36, height: 36)
-                .overlay(
-                    Text("MR")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                )
+        .navigationTitle("Descobrir")
+        .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showFilters) {
+            FiltersView(viewModel: viewModel)
         }
     }
 
@@ -53,7 +40,7 @@ struct EventListView: View {
             .padding(.vertical, 12)
             .background(AppColor.clicavel, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Button(action: {}) {
+            Button(action: { showFilters = true }) {
                 Image(systemName: "slider.horizontal.3")
                     .fontWeight(.bold)
                     .foregroundStyle(AppColor.textoPrimario)
@@ -95,7 +82,12 @@ struct EventListView: View {
         } else {
             VStack(spacing: 16) {
                 ForEach(viewModel.filteredEvents) { event in
-                    EventCardView(event: event)
+                    Button {
+                        router.push(.eventDetail(event))
+                    } label: {
+                        EventCardView(event: event)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

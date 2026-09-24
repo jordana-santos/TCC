@@ -1,1 +1,10 @@
 
+import SwiftUI
+
+struct RootView: View {
+    var body: some View {
+        MainTabView()
+            .preferredColorScheme(.dark)
+
+    }
+}

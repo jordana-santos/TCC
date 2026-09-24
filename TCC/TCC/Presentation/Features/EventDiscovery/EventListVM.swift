@@ -9,6 +9,14 @@ final class EventListVM: ObservableObject {
     @Published var selectedCategoryIds: Set<UUID> = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var selectedDate: Date? = nil
+    @Published var freeOnly: Bool = false
+    @Published var maxPrice: Decimal? = nil
+    @Published var radiusKm: Double? = nil // UI apenas por enquanto, ver nota no chat
+
+    var hasActiveFilters: Bool {
+        !selectedCategoryIds.isEmpty || selectedDate != nil || freeOnly || maxPrice != nil
+    }
 
     private let eventRepository: EventRepository
     private let categoryRepository: CategoryRepository
@@ -20,11 +28,20 @@ final class EventListVM: ObservableObject {
 
     var filteredEvents: [Event] {
         events.filter { event in
+            guard event.status == .published else { return false }
             let matchesSearch = searchText.isEmpty
                 || event.title.localizedCaseInsensitiveContains(searchText)
             let matchesCategory = selectedCategoryIds.isEmpty
                 || event.categories.contains { selectedCategoryIds.contains($0.id) }
-            return matchesSearch && matchesCategory
+            let matchesDate = selectedDate.map {
+                Calendar.current.isDate(event.startsAt, inSameDayAs: $0)
+            } ?? true
+            let matchesPrice: Bool = {
+                if freeOnly { return event.price == 0 }
+                if let maxPrice { return event.price <= maxPrice }
+                return true
+            }()
+            return matchesSearch && matchesCategory && matchesDate && matchesPrice
         }
     }
 
@@ -39,6 +56,10 @@ final class EventListVM: ObservableObject {
     func clearFilters() {
         selectedCategoryIds.removeAll()
         searchText = ""
+        selectedDate = nil
+        freeOnly = false
+        maxPrice = nil
+        radiusKm = nil
     }
 
     func load() async {
@@ -54,5 +75,9 @@ final class EventListVM: ObservableObject {
         } catch {
             errorMessage = "Não foi possível carregar os eventos."
         }
+    }
+    
+    func detailViewModel(for event: Event) -> EventDetailVM {
+        EventDetailVM(event: event, repository: eventRepository)
     }
 }

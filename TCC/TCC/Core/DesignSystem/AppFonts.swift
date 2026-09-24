@@ -19,4 +19,6 @@ enum AppFont {
     static let metadado = Font.system(size: 13, weight: .medium, design: .monospaced)
     /// Bold 700 · 11pt · caixa alta. Tag de categoria / micro label.
     static let tag = Font.system(size: 11, weight: .bold, design: .rounded)
+    /// Heavy 800 · 24pt. Título da tela de detalhe do evento.
+    static let tituloDetalhe = Font.system(size: 24, weight: .heavy, design: .rounded)
 }

@@ -4,28 +4,32 @@ struct CategoryTagView: View {
     let category: Category
 
     var body: some View {
-        let style = Self.style(for: category)
-        Text(category.name.uppercased())
-            .font(AppFont.tag)
-            .foregroundStyle(style.text)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 5)
-            .background(style.background, in: Capsule())
+        let style = CategoryTagView.style(for: category)
+        HStack(spacing: 4) {
+            Image(systemName: style.icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(category.name)
+                .font(AppFont.tag)
+        }
+        .foregroundStyle(style.text)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(style.background)
+        .clipShape(Capsule())
     }
 
-    static func style(for category: Category) -> (background: Color, text: Color) {
+    static func style(for category: Category) -> (background: Color, text: Color, icon: String) {
         switch category.name.lowercased() {
-        case "show":
-            return (AppColor.secundaria, AppColor.fundo)
+        case "música", "musica":
+            return (AppColor.secundaria.opacity(0.18), AppColor.textoMusica, "music.note")
         case "teatro":
-            return (AppColor.accent.opacity(0.18), AppColor.accent)
-        case "exposição", "exposicao":
-            return (AppColor.neon.opacity(0.18), AppColor.neon)
+            return (AppColor.accent.opacity(0.18), AppColor.textoTeatro, "theatermasks.fill")
+        case "arte e exposições", "arte e exposicoes":
+            return (AppColor.neon.opacity(0.18), AppColor.textoArte, "paintpalette.fill")
+        case "gastronomia":
+            return (AppColor.gastronomia.opacity(0.18), AppColor.textoGastronomia, "fork.knife")
         default:
-            let palette: [Color] = [AppColor.secundaria, AppColor.accent, AppColor.neon]
-            let bytes = withUnsafeBytes(of: category.id.uuid) { Array($0) }
-            let base = palette[bytes.reduce(0) { $0 + Int($1) } % palette.count]
-            return (base.opacity(0.18), base)
+            return (AppColor.cards, AppColor.textoSecondario, "tag.fill")
         }
     }
 }

@@ -26,4 +26,11 @@ enum AppColor {
     static let textoSecondario = Color("secundario")
     static let textMuted = Color("muted")
     static let placeholder = Color("placeholder")
+    
+    //categorias
+    static let gastronomia = Color("gastronomia")
+    static let textoArte = Color("textoArte")
+    static let textoGastronomia = Color("textoGastronomia")
+    static let textoMusica = Color("textoMusica")
+    static let textoTeatro = Color("textoTeatro")
 }
