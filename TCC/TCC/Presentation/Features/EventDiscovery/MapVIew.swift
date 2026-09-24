@@ -1,4 +1,3 @@
-
 import SwiftUI
 import MapKit
 
@@ -6,6 +5,7 @@ struct MapView: View {
     @ObservedObject var viewModel: EventListVM
     let router: Router
 
+    @StateObject private var locationManager = LocationManager()
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var selectedEvent: Event?
 
@@ -20,7 +20,16 @@ struct MapView: View {
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
-            .onAppear { centerOnEvents() }
+            .onAppear {
+                locationManager.requestLocation()
+                updateMapForFilteredEvents()
+            }
+            .onChange(of: viewModel.filteredEvents.map(\.id)) { _, _ in
+                updateMapForFilteredEvents()
+            }
+            .onChange(of: locationManager.userLocation != nil) { _, _ in
+                updateMapForFilteredEvents()
+            }
 
             VStack(spacing: 12) {
                 searchBar
@@ -58,10 +67,9 @@ struct MapView: View {
 
     private func pinIcon(for event: Event) -> String {
         switch event.categories.first?.name.lowercased() {
-        case "show": return "music.note"
+        case "música", "musica": return "music.note"
         case "teatro": return "theatermasks.fill"
-        case "exposição", "exposicao": return "paintpalette.fill"
-        case "feira": return "tent.fill"
+        case "arte e exposições", "arte e exposicoes": return "paintpalette.fill"
         case "gastronomia": return "fork.knife"
         default: return "mappin"
         }
@@ -102,14 +110,54 @@ struct MapView: View {
         .buttonStyle(.plain)
     }
 
-    private func centerOnEvents() {
-        guard let first = viewModel.filteredEvents.first else { return }
-        cameraPosition = .region(
-            MKCoordinateRegion(
-                center: first.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-            )
+    private func updateMapForFilteredEvents() {
+        let events = viewModel.filteredEvents
+        selectedEvent = events.count == 1 ? events.first : nil
+
+        let isFiltering = !viewModel.searchText.isEmpty || viewModel.hasActiveFilters
+
+        if !isFiltering, let userLocation = locationManager.userLocation {
+            withAnimation {
+                cameraPosition = .region(region(around: userLocation, radiusKm: 5))
+            }
+            return
+        }
+
+        if let region = region(for: events) {
+            withAnimation {
+                cameraPosition = .region(region)
+            }
+        }
+    }
+
+    private func region(around coordinate: CLLocationCoordinate2D, radiusKm: Double) -> MKCoordinateRegion {
+        let latDelta = (radiusKm * 2) / 111.0
+        let lonDelta = (radiusKm * 2) / (111.0 * max(cos(coordinate.latitude * .pi / 180), 0.1))
+        return MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
         )
+    }
+
+    private func region(for events: [Event]) -> MKCoordinateRegion? {
+        guard !events.isEmpty else { return nil }
+        let coordinates = events.map(\.coordinate)
+        let latitudes = coordinates.map(\.latitude)
+        let longitudes = coordinates.map(\.longitude)
+        let minLat = latitudes.min()!
+        let maxLat = latitudes.max()!
+        let minLon = longitudes.min()!
+        let maxLon = longitudes.max()!
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(0.05, (maxLat - minLat) * 1.6),
+            longitudeDelta: max(0.05, (maxLon - minLon) * 1.6)
+        )
+        return MKCoordinateRegion(center: center, span: span)
     }
 }
 

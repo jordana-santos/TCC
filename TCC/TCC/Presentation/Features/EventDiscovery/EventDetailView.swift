@@ -1,8 +1,8 @@
-
 import SwiftUI
 
 struct EventDetailView: View {
     @StateObject private var viewModel: EventDetailVM
+    @EnvironmentObject private var favoritesStore: FavoritesStore
     @Environment(\.dismiss) private var dismiss
 
     init(viewModel: EventDetailVM) {
@@ -40,9 +40,9 @@ struct EventDetailView: View {
                 circleButton(systemName: "chevron.left") { dismiss() }
                 Spacer()
                 circleButton(
-                    systemName: viewModel.isFavorited ? "heart.fill" : "heart",
-                    tint: viewModel.isFavorited ? AppColor.neon : .white
-                ) { viewModel.toggleFavorite() }
+                    systemName: favoritesStore.isFavorited(event.id) ? "heart.fill" : "heart",
+                    tint: favoritesStore.isFavorited(event.id) ? AppColor.neon : .white
+                ) { favoritesStore.toggleFavorite(event.id) }
                 circleButton(systemName: "square.and.arrow.up") { }
             }
             .padding(16)
@@ -113,7 +113,7 @@ struct EventDetailView: View {
 
     private var badgesRow: some View {
         HStack(spacing: 6) {
-            ForEach(event.categories) { category in
+            ForEach(event.categories.sortedAlphabetically()) { category in
                 CategoryTagView(category: category)
             }
         }

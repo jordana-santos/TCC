@@ -5,6 +5,7 @@ struct MainTabView: View {
         eventRepository: SupabaseEventRepository(),
         categoryRepository: SupabaseCategoryRepository()
     )
+    @StateObject private var favoritesStore = FavoritesStore()
     @StateObject private var discoverRouter = Router()
     @StateObject private var mapRouter = Router()
 
@@ -31,6 +32,7 @@ struct MainTabView: View {
             Text("Perfil")
                 .tabItem { Label("Perfil", systemImage: "person") }
         }
+        .environmentObject(favoritesStore)
         .tint(AppColor.primaria)
         .task { await eventListViewModel.load() }
     }

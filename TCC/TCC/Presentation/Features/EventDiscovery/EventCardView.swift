@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EventCardView: View {
     let event: Event
+    @EnvironmentObject private var favoritesStore: FavoritesStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -29,11 +30,10 @@ struct EventCardView: View {
             .clipped()
 
             HStack {
-                // Favoritar é da feature de Engajamento, ainda não integrada.
-                Button(action: {}) {
-                    Image(systemName: "heart")
+                Button(action: { favoritesStore.toggleFavorite(event.id) }) {
+                    Image(systemName: favoritesStore.isFavorited(event.id) ? "heart.fill" : "heart")
                         .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(favoritesStore.isFavorited(event.id) ? AppColor.neon : .white)
                         .padding(8)
                         .background(.black.opacity(0.35), in: Circle())
                 }
@@ -53,9 +53,7 @@ struct EventCardView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let category = event.categories.first {
-                CategoryTagView(category: category)
-            }
+            categoriesRow
 
             Text(event.title)
                 .font(AppFont.tituloCard)
@@ -68,11 +66,21 @@ struct EventCardView: View {
         .padding(16)
     }
 
+    private var categoriesRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(event.categories.sortedAlphabetically()) { category in
+                    CategoryTagView(category: category)
+                }
+            }
+        }
+    }
+
     private var subtitle: String {
         let weekday = event.startsAt.formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "pt_BR")))
         let day = event.startsAt.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "pt_BR")))
         let hour = event.startsAt.formatted(.dateTime.hour().minute().locale(Locale(identifier: "pt_BR")))
-        return "\(weekday) · \(day) · \(hour) — \(event.location.address)"
+        return "\(weekday) · \(day) · \(hour)"
     }
 
     private var capacityBadge: (text: String, color: Color)? {

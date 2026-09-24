@@ -6,7 +6,6 @@ final class EventDetailVM: ObservableObject {
     @Published private(set) var event: Event
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var isFavorited = false
     @Published var isGoing = false
     @Published var hasCheckedIn = false
 
@@ -28,7 +27,6 @@ final class EventDetailVM: ObservableObject {
         }
     }
 
-    func toggleFavorite() { isFavorited.toggle() }
     func markGoing() { isGoing = true }
     func checkIn() { hasCheckedIn = true }
 }

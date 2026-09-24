@@ -33,3 +33,9 @@ struct CategoryTagView: View {
         }
     }
 }
+
+extension Array where Element == Category {
+    func sortedAlphabetically() -> [Category] {
+        sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+}
