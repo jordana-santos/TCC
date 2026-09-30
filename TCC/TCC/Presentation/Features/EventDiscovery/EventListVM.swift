@@ -78,6 +78,9 @@ final class EventListVM: ObservableObject {
     }
     
     func detailViewModel(for event: Event) -> EventDetailVM {
-        EventDetailVM(event: event, repository: eventRepository)
+        EventDetailVM(event: event, repository: eventRepository) { [weak self] updated in
+            guard let self, let index = self.events.firstIndex(where: { $0.id == updated.id }) else { return }
+            self.events[index] = updated
+        }
     }
 }

@@ -12,4 +12,9 @@ final class SupabaseProfileRepository: ProfileRepository {
     func update(_ profile: Profile) async throws {
         try await dataSource.updateProfile(id: profile.id, displayName: profile.displayName, photoURL: profile.photoURL)
     }
+    
+    func updateLocation(city: String, state: String, latitude: Double, longitude: Double) async throws {
+        let userId = try await SupabaseManager.shared.auth.session.user.id
+        try await ProfileDS().updateLocation(id: userId, city: city, state: state, latitude: latitude, longitude: longitude)
+    }
 }

@@ -2,7 +2,8 @@ import SwiftUI
 
 struct EventCardView: View {
     let event: Event
-    @EnvironmentObject private var favoritesStore: FavoritesStore
+    @EnvironmentObject private var engagementStore: EngagementStore
+    @EnvironmentObject private var session: SessionStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -30,10 +31,10 @@ struct EventCardView: View {
             .clipped()
 
             HStack {
-                Button(action: { favoritesStore.toggleFavorite(event.id) }) {
-                    Image(systemName: favoritesStore.isFavorited(event.id) ? "heart.fill" : "heart")
+                Button(action: {session.requireAuth {engagementStore.toggleFavorite(event.id)}}) {
+                    Image(systemName: engagementStore.isFavorited(event.id) ? "heart.fill" : "heart")
                         .fontWeight(.bold)
-                        .foregroundStyle(favoritesStore.isFavorited(event.id) ? AppColor.neon : .white)
+                        .foregroundStyle(engagementStore.isFavorited(event.id) ? AppColor.neon : .white)
                         .padding(8)
                         .background(.black.opacity(0.35), in: Circle())
                 }

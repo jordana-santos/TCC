@@ -18,4 +18,11 @@ final class ProfileDS {
             .update(Payload(displayName: displayName, photoURL: photoURL))
             .eq("id", value: id).execute()
     }
+    
+    func updateLocation(id: UUID, city: String, state: String, latitude: Double, longitude: Double) async throws {
+        struct Payload: Encodable { let city: String; let state: String; let latitude: Double; let longitude: Double }
+        try await client.from("profiles")
+            .update(Payload(city: city, state: state, latitude: latitude, longitude: longitude))
+            .eq("id", value: id).execute()
+    }
 }

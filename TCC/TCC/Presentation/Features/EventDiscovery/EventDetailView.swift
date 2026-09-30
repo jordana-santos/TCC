@@ -2,8 +2,11 @@ import SwiftUI
 
 struct EventDetailView: View {
     @StateObject private var viewModel: EventDetailVM
-    @EnvironmentObject private var favoritesStore: FavoritesStore
+    @EnvironmentObject private var engagementStore: EngagementStore
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var session: SessionStore
+    private var isGoing: Bool { engagementStore.isGoing(event.id) }
+    private var hasCheckedIn: Bool { engagementStore.hasCheckedIn(event.id) }
 
     init(viewModel: EventDetailVM) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -40,9 +43,9 @@ struct EventDetailView: View {
                 circleButton(systemName: "chevron.left") { dismiss() }
                 Spacer()
                 circleButton(
-                    systemName: favoritesStore.isFavorited(event.id) ? "heart.fill" : "heart",
-                    tint: favoritesStore.isFavorited(event.id) ? AppColor.neon : .white
-                ) { favoritesStore.toggleFavorite(event.id) }
+                    systemName: engagementStore.isFavorited(event.id) ? "heart.fill" : "heart",
+                    tint: engagementStore.isFavorited(event.id) ? AppColor.neon : .white
+                ) { session.requireAuth { engagementStore.toggleFavorite(event.id) } }
                 circleButton(systemName: "square.and.arrow.up") { }
             }
             .padding(16)
@@ -85,7 +88,7 @@ struct EventDetailView: View {
             if let capacityMax = event.capacityMax {
                 capacitySection(max: capacityMax)
             }
-            if viewModel.isGoing && event.isFull {
+            if isGoing && event.isFull {
                 soldOutBanner
             }
             Text(event.description)
@@ -104,7 +107,7 @@ struct EventDetailView: View {
                 }
             }
 
-            if viewModel.isGoing {
+            if isGoing {
                 goingStatus
             }
         }
@@ -124,6 +127,7 @@ struct EventDetailView: View {
             metaRow(icon: "calendar", text: dateRangeText)
             metaRow(icon: "mappin.and.ellipse", text: event.location.address)
             metaRow(icon: "tag", text: priceText, tint: event.price == 0 ? AppColor.successo : AppColor.textoPrimario)
+            metaRow(icon: "person.2", text: event.attendeeCount == 1 ? "1 pessoa vai" : "\(event.attendeeCount) pessoas vão")
         }
     }
 
@@ -176,7 +180,7 @@ struct EventDetailView: View {
     private var goingStatus: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.circle.fill")
-            Text(viewModel.hasCheckedIn ? "Check-in feito" : "Você vai a este evento")
+            Text(hasCheckedIn ? "Check-in feito" : "Você vai a este evento")
         }
         .font(AppFont.rotulo)
         .foregroundStyle(AppColor.successo)
@@ -187,10 +191,12 @@ struct EventDetailView: View {
 
     @ViewBuilder
     private var actionBar: some View {
-        if !event.isFull || viewModel.isGoing {
+        if !event.isFull || isGoing {
             HStack(spacing: 12) {
-                if !viewModel.isGoing {
-                    Button(action: { viewModel.markGoing() }) {
+                if !isGoing {
+                    Button {
+                        session.requireAuth { toggleGoing() }
+                    } label: {
                         Text("Vou! · marcar presença")
                             .font(AppFont.rotulo)
                             .foregroundStyle(.white)
@@ -198,8 +204,10 @@ struct EventDetailView: View {
                             .padding(.vertical, 15)
                     }
                     .background(AppColor.primaria, in: Capsule())
-                } else if !viewModel.hasCheckedIn {
-                    Button(action: { viewModel.checkIn() }) {
+                } else if !hasCheckedIn {
+                    Button {
+                        session.requireAuth { engagementStore.checkIn(event.id) }
+                    } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "person.badge.key.fill")
                             Text("Fazer check-in")
@@ -210,10 +218,29 @@ struct EventDetailView: View {
                         .padding(.vertical, 15)
                     }
                     .background(AppColor.accent, in: Capsule())
+
+                    Button {
+                        toggleGoing()
+                    } label: {
+                        Text("Cancelar")
+                            .font(AppFont.rotulo)
+                            .foregroundStyle(AppColor.textoSecondario)
+                            .padding(.vertical, 15)
+                            .padding(.horizontal, 18)
+                    }
+                    .background(AppColor.clicavel, in: Capsule())
                 }
             }
             .padding(16)
             .background(AppColor.fundo)
+        }
+    }
+
+    private func toggleGoing() {
+        Task {
+            if await engagementStore.toggleGoing(event) {
+                await viewModel.refresh()
+            }
         }
     }
 

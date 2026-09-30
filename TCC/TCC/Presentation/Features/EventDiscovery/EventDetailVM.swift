@@ -6,14 +6,14 @@ final class EventDetailVM: ObservableObject {
     @Published private(set) var event: Event
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var isGoing = false
-    @Published var hasCheckedIn = false
 
     private let repository: EventRepository
+    private let onUpdate: ((Event) -> Void)?
 
-    init(event: Event, repository: EventRepository) {
+    init(event: Event, repository: EventRepository, onUpdate: ((Event) -> Void)? = nil) {
         self.event = event
         self.repository = repository
+        self.onUpdate = onUpdate
     }
 
     func refresh() async {
@@ -22,11 +22,9 @@ final class EventDetailVM: ObservableObject {
         defer { isLoading = false }
         do {
             event = try await repository.fetchEvent(id: event.id)
+            onUpdate?(event)
         } catch {
             errorMessage = "Não foi possível atualizar o evento."
         }
     }
-
-    func markGoing() { isGoing = true }
-    func checkIn() { hasCheckedIn = true }
 }

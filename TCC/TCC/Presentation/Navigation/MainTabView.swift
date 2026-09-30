@@ -5,9 +5,10 @@ struct MainTabView: View {
         eventRepository: SupabaseEventRepository(),
         categoryRepository: SupabaseCategoryRepository()
     )
-    @StateObject private var favoritesStore = FavoritesStore()
+    @StateObject private var engagementStore = EngagementStore()
     @StateObject private var discoverRouter = Router()
     @StateObject private var mapRouter = Router()
+    @EnvironmentObject private var session: SessionStore
 
     var body: some View {
         TabView {
@@ -32,9 +33,16 @@ struct MainTabView: View {
             Text("Perfil")
                 .tabItem { Label("Perfil", systemImage: "person") }
         }
-        .environmentObject(favoritesStore)
+        .environmentObject(engagementStore)
         .tint(AppColor.primaria)
         .task { await eventListViewModel.load() }
+        .task(id: session.currentProfile?.id) {
+            if session.isAuthenticated {
+                await engagementStore.loadHistory()
+            } else {
+                engagementStore.clear()
+            }
+        }
     }
 
     @ViewBuilder
