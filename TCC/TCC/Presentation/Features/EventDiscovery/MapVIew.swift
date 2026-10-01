@@ -5,7 +5,7 @@ struct MapView: View {
     @ObservedObject var viewModel: EventListVM
     let router: Router
 
-    @StateObject private var locationManager = LocationManager()
+    @EnvironmentObject private var locationManager: LocationManager
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var selectedEvent: Event?
 
@@ -21,7 +21,6 @@ struct MapView: View {
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
             .onAppear {
-                locationManager.requestLocation()
                 updateMapForFilteredEvents()
             }
             .onChange(of: viewModel.filteredEvents.map(\.id)) { _, _ in

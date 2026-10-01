@@ -9,6 +9,7 @@ struct MainTabView: View {
     @StateObject private var discoverRouter = Router()
     @StateObject private var mapRouter = Router()
     @EnvironmentObject private var session: SessionStore
+    @EnvironmentObject private var locationManager: LocationManager
 
     var body: some View {
         TabView {
@@ -30,7 +31,7 @@ struct MainTabView: View {
             Text("Histórico")
                 .tabItem { Label("Histórico", systemImage: "clock.arrow.circlepath") }
 
-            Text("Perfil")
+            ProfileView()
                 .tabItem { Label("Perfil", systemImage: "person") }
         }
         .environmentObject(engagementStore)
@@ -43,6 +44,7 @@ struct MainTabView: View {
                 engagementStore.clear()
             }
         }
+        .task { locationManager.requestLocation() }
     }
 
     @ViewBuilder

@@ -1,4 +1,3 @@
-
 import Foundation
 import CoreLocation
 import Combine
@@ -6,13 +5,23 @@ import Combine
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var userLocation: CLLocationCoordinate2D?
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     private let manager = CLLocationManager()
+
+    var isAuthorized: Bool {
+        authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
+    }
+
+    var isDenied: Bool {
+        authorizationStatus == .denied || authorizationStatus == .restricted
+    }
 
     override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
+        authorizationStatus = manager.authorizationStatus
     }
 
     func requestLocation() {
@@ -29,10 +38,11 @@ final class LocationManager: NSObject, ObservableObject {
 
 extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
         Task { @MainActor in
-            let status = manager.authorizationStatus
+            self.authorizationStatus = status
             if status == .authorizedWhenInUse || status == .authorizedAlways {
-                manager.requestLocation()
+                self.manager.requestLocation()
             }
         }
     }
@@ -40,11 +50,11 @@ extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
-            userLocation = coordinate
+            self.userLocation = coordinate
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Sem localização disponível, o MapView cai no fallback de enquadrar os eventos.
+        // Sem localização disponível, quem usa cai no fallback (MapView enquadra os eventos).
     }
 }
