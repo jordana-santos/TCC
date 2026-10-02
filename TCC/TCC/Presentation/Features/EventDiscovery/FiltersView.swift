@@ -19,6 +19,7 @@ struct FiltersView: View {
                     dateSection
                     priceSection
                     distanceSection
+                    locationSection
                 }
                 .padding(20)
                 .padding(.bottom, 40)
@@ -133,21 +134,32 @@ struct FiltersView: View {
             Text("Distância")
                 .font(AppFont.tituloSecao)
                 .foregroundStyle(AppColor.textoPrimario)
-            // Localização real ainda não integrada (falta CoreLocation + permissão).
-            // Por enquanto só guarda o valor, não filtra a lista de verdade.
             VStack(alignment: .leading, spacing: 6) {
-                Text(viewModel.radiusKm.map { "Até \(Int($0)) km" } ?? "Qualquer distância")
+                Text("Até \(Int(viewModel.radiusKm)) km")
                     .font(AppFont.legenda)
                     .foregroundStyle(AppColor.textoSecondario)
-                Slider(
-                    value: Binding(
-                        get: { viewModel.radiusKm ?? 50 },
-                        set: { viewModel.radiusKm = $0 }
-                    ),
-                    in: 1...50,
-                    step: 1
-                )
-                .tint(AppColor.primaria)
+                Slider(value: $viewModel.radiusKm, in: 1...50, step: 1)
+                    .tint(AppColor.primaria)
+            }
+        }
+    }
+
+    private var locationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Localização")
+                .font(AppFont.tituloSecao)
+                .foregroundStyle(AppColor.textoPrimario)
+            if let label = viewModel.referenceLabel {
+                HStack(spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundStyle(AppColor.textMuted)
+                    Text("Perto de: \(label)")
+                        .font(AppFont.corpo)
+                        .foregroundStyle(AppColor.textoPrimario)
+                }
+            }
+            CityFormView(buttonTitle: "Trocar cidade", initialState: viewModel.suggestedState) { city, state in
+                try await viewModel.setCity(city: city, state: state)
             }
         }
     }

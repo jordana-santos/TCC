@@ -72,11 +72,14 @@ struct EventListView: View {
                 .foregroundStyle(AppColor.erro)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 40)
-        } else if viewModel.isLoading && viewModel.events.isEmpty {
+        } else if viewModel.referenceState == .resolving
+                    || (viewModel.isLoading && viewModel.events.isEmpty) {
             ProgressView()
                 .tint(AppColor.primaria)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 60)
+        } else if viewModel.referenceState == .needsCity {
+            cityPrompt
         } else if viewModel.filteredEvents.isEmpty {
             emptyState
         } else {
@@ -91,6 +94,28 @@ struct EventListView: View {
                 }
             }
         }
+    }
+
+    private var cityPrompt: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textMuted)
+                .padding(20)
+                .background(Circle().fill(AppColor.clicavel))
+            Text("Onde você está?")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textoPrimario)
+            Text("Sem a sua localização, precisamos da cidade para mostrar os eventos perto de você.")
+                .font(AppFont.legenda)
+                .foregroundStyle(AppColor.textoSecondario)
+                .multilineTextAlignment(.center)
+            CityFormView(buttonTitle: "Ver eventos") { city, state in
+                try await viewModel.setCity(city: city, state: state)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 
     private var emptyState: some View {

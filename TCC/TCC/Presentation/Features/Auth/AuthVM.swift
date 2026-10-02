@@ -30,11 +30,7 @@ final class AuthVM: ObservableObject {
     @discardableResult
     func signUp(session: SessionStore) async -> Bool {
         await run {
-            try await session.signUp(email: self.email.trimmingCharacters(in: .whitespaces),
-                                     password: self.password,
-                                     displayName: self.displayName.trimmingCharacters(in: .whitespaces),
-                                     city: self.city.trimmingCharacters(in: .whitespaces),
-                                     state: self.state)
+            try await session.signUp(email: self.email.trimmingCharacters(in: .whitespaces), password: self.password,displayName: self.displayName.trimmingCharacters(in: .whitespaces), city: self.city.trimmingCharacters(in: .whitespaces), state: self.state)
         }
     }
 

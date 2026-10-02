@@ -25,4 +25,14 @@ final class ProfileDS {
             .update(Payload(city: city, state: state, latitude: latitude, longitude: longitude))
             .eq("id", value: id).execute()
     }
+    
+    func updateRole(id: UUID, role: String) async throws {
+        struct Payload: Encodable { let role: String }
+        try await client.from("profiles")
+            .update(Payload(role: role))
+            .eq("id", value: id)
+            .select()
+            .single()
+            .execute()
+    }
 }

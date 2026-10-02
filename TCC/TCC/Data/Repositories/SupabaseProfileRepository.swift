@@ -17,4 +17,9 @@ final class SupabaseProfileRepository: ProfileRepository {
         let userId = try await SupabaseManager.shared.auth.session.user.id
         try await ProfileDS().updateLocation(id: userId, city: city, state: state, latitude: latitude, longitude: longitude)
     }
+    
+    func updateRole(_ role: AccountType) async throws {
+        let userId = try await client.auth.session.user.id
+        try await dataSource.updateRole(id: userId, role: role.rawValue)
+    }
 }

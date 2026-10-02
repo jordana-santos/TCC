@@ -6,6 +6,7 @@ import Combine
 final class LocationManager: NSObject, ObservableObject {
     @Published private(set) var userLocation: CLLocationCoordinate2D?
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    @Published private(set) var didFail = false
 
     private let manager = CLLocationManager()
 
@@ -15,6 +16,17 @@ final class LocationManager: NSObject, ObservableObject {
 
     var isDenied: Bool {
         authorizationStatus == .denied || authorizationStatus == .restricted
+    }
+
+    var isResolving: Bool {
+        switch authorizationStatus {
+        case .notDetermined:
+            return true
+        case .authorizedWhenInUse, .authorizedAlways:
+            return userLocation == nil && !didFail
+        default:
+            return false
+        }
     }
 
     override init() {
@@ -51,10 +63,13 @@ extension LocationManager: CLLocationManagerDelegate {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
             self.userLocation = coordinate
+            self.didFail = false
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Sem localização disponível, quem usa cai no fallback (MapView enquadra os eventos).
+        Task { @MainActor in
+            self.didFail = true
+        }
     }
 }

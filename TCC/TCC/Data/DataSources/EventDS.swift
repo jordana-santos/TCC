@@ -16,6 +16,60 @@ struct EventWritePayload: Encodable {
     }
 }
 
+struct CreateEventParams: Encodable {
+    let title: String
+    let description: String?
+    let startsAt: Date
+    let endsAt: Date
+    let price: Decimal
+    let capacityMax: Int?
+    let externalLink: String?
+    let imageURL: String?
+    let status: String
+    let address: String
+    let latitude: Double
+    let longitude: Double
+    let categoryIds: [UUID]
+
+    enum CodingKeys: String, CodingKey {
+        case title = "p_title", description = "p_description"
+        case startsAt = "p_starts_at", endsAt = "p_ends_at"
+        case price = "p_price", capacityMax = "p_capacity_max"
+        case externalLink = "p_external_link", imageURL = "p_image_url"
+        case status = "p_status", address = "p_address"
+        case latitude = "p_latitude", longitude = "p_longitude"
+        case categoryIds = "p_category_ids"
+    }
+}
+
+struct UpdateEventParams: Encodable {
+    let eventId: UUID
+    let title: String
+    let description: String?
+    let startsAt: Date
+    let endsAt: Date
+    let price: Decimal
+    let capacityMax: Int?
+    let externalLink: String?
+    let imageURL: String?
+    let status: String
+    let address: String
+    let latitude: Double
+    let longitude: Double
+    let categoryIds: [UUID]
+
+    enum CodingKeys: String, CodingKey {
+        case eventId = "p_event_id"
+        case title = "p_title", description = "p_description"
+        case startsAt = "p_starts_at", endsAt = "p_ends_at"
+        case price = "p_price", capacityMax = "p_capacity_max"
+        case externalLink = "p_external_link", imageURL = "p_image_url"
+        case status = "p_status", address = "p_address"
+        case latitude = "p_latitude", longitude = "p_longitude"
+        case categoryIds = "p_category_ids"
+    }
+}
+
 final class EventDS {
     private let client = SupabaseManager.shared
     private let embed = "*, locations(*), event_categories(categories(*))"
@@ -81,5 +135,31 @@ final class EventDS {
             enum CodingKeys: String, CodingKey { case eventId = "event_id", categoryId = "category_id" }
         }
         try await client.from("event_categories").insert(categoryIds.map { Link(eventId: eventId, categoryId: $0) }).execute()
+    }
+    
+    func fetchProducerEvents(producerId: UUID) async throws -> [EventDTO] {
+        try await client.from("events")
+            .select(embed)
+            .eq("producer_id", value: producerId)
+            .execute().value
+    }
+    
+    func createEventFull(_ params: CreateEventParams) async throws -> UUID {
+        try await client.rpc("create_event_full", params: params).execute().value
+    }
+    
+    func updateEventFull(_ params: UpdateEventParams) async throws {
+        try await client.rpc("update_event_full", params: params).execute()
+    }
+
+    func updateStatus(id: UUID, status: String) async throws {
+        struct Payload: Encodable { let status: String }
+        struct Row: Decodable { let id: UUID }
+        let rows: [Row] = try await client.from("events")
+            .update(Payload(status: status))
+            .eq("id", value: id)
+            .select("id")
+            .execute().value
+        guard !rows.isEmpty else { throw DataError.missingID }
     }
 }

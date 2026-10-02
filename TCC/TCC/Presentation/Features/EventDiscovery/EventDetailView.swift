@@ -7,12 +7,17 @@ struct EventDetailView: View {
     @EnvironmentObject private var session: SessionStore
     private var isGoing: Bool { engagementStore.isGoing(event.id) }
     private var hasCheckedIn: Bool { engagementStore.hasCheckedIn(event.id) }
+    @State private var showEdit = false
+    @State private var wasDeleted = false
 
     init(viewModel: EventDetailVM) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     private var event: Event { viewModel.event }
+    private var canEdit: Bool {
+        session.currentProfile?.id == event.producerId && event.status != .cancelled
+    }
 
     var body: some View {
         ScrollView {
@@ -25,6 +30,15 @@ struct EventDetailView: View {
         .safeAreaInset(edge: .bottom) { actionBar }
         .toolbar(.hidden, for: .navigationBar)
         .task { await viewModel.refresh() }
+        .sheet(isPresented: $showEdit, onDismiss: {
+            if wasDeleted { dismiss() }
+        }) {
+            EventFormView(
+                mode: .edit(event),
+                onSaved: { Task { await viewModel.refresh() } },
+                onDeleted: { wasDeleted = true }
+            )
+        }
     }
 
     private var imageHeader: some View {
@@ -42,6 +56,9 @@ struct EventDetailView: View {
             HStack {
                 circleButton(systemName: "chevron.left") { dismiss() }
                 Spacer()
+                if canEdit {
+                    circleButton(systemName: "pencil") { showEdit = true }
+                }
                 circleButton(
                     systemName: engagementStore.isFavorited(event.id) ? "heart.fill" : "heart",
                     tint: engagementStore.isFavorited(event.id) ? AppColor.neon : .white
@@ -80,6 +97,9 @@ struct EventDetailView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
+            if event.status != .published {
+                statusBanner
+            }
             badgesRow
             Text(event.title)
                 .font(AppFont.tituloDetalhe)
@@ -191,7 +211,7 @@ struct EventDetailView: View {
 
     @ViewBuilder
     private var actionBar: some View {
-        if !event.isFull || isGoing {
+        if event.status == .published && (!event.isFull || isGoing) {
             HStack(spacing: 12) {
                 if !isGoing {
                     Button {
@@ -263,5 +283,19 @@ struct EventDetailView: View {
             return ("Quase cheio", AppColor.alerta)
         }
         return nil
+    }
+    
+    private var statusBanner: some View {
+        let isCancelled = event.status == .cancelled
+        let color = isCancelled ? AppColor.erro : AppColor.alerta
+        return HStack(spacing: 8) {
+            Image(systemName: isCancelled ? "xmark.circle.fill" : "eye.slash.fill")
+            Text(isCancelled ? "Evento cancelado" : "Rascunho, só você vê este evento")
+                .font(AppFont.legenda)
+        }
+        .foregroundStyle(color)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

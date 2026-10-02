@@ -30,8 +30,7 @@ final class SessionStore: ObservableObject {
         let coordinate = try await CityGeocoder.coordinate(city: city, state: state)
         try await authRepository.signUp(email: email, password: password, displayName: displayName)
         _ = try await fetchProfileWithRetry()
-        try await profileRepository.updateLocation(city: city, state: state,
-                                                   latitude: coordinate.latitude, longitude: coordinate.longitude)
+        try await profileRepository.updateLocation(city: city, state: state, latitude: coordinate.latitude,longitude: coordinate.longitude)
         currentProfile = try await profileRepository.fetchCurrentProfile()
     }
 
@@ -70,4 +69,10 @@ final class SessionStore: ObservableObject {
         }
         return try await profileRepository.fetchCurrentProfile()
     }
-} 
+    
+    func setProducer(_ isProducer: Bool) async throws {
+        let role: AccountType = isProducer ? .producer : .attendee
+        try await profileRepository.updateRole(role)
+        currentProfile?.role = role
+    }
+}

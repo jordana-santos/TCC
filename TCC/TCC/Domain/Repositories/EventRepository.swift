@@ -16,4 +16,6 @@ protocol EventRepository {
     func create(_ event: Event) async throws
     func update(_ event: Event) async throws
     func delete(id: UUID) async throws
+    func fetchProducerEvents(producerId: UUID) async throws -> [Event]
+    func setStatus(id: UUID, status: EventStatus) async throws
 }

@@ -7,12 +7,33 @@ struct MapView: View {
 
     @EnvironmentObject private var locationManager: LocationManager
     @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var visibleRegion: MKCoordinateRegion?
     @State private var selectedEvent: Event?
+    @State private var hasInitialPosition = false
+
+    /// Onde você está de verdade. Sem localização, usa a cidade de referência.
+    private var homeCoordinate: CLLocationCoordinate2D? {
+        locationManager.userLocation ?? viewModel.referenceCoordinate
+    }
+
+    /// Eventos dentro da região que aparece na tela, sem limite de raio.
+    private var visibleEvents: [Event] {
+        let events = viewModel.baseFilteredEvents
+        guard let region = visibleRegion else { return events }
+        let minLat = region.center.latitude - region.span.latitudeDelta / 2
+        let maxLat = region.center.latitude + region.span.latitudeDelta / 2
+        let minLon = region.center.longitude - region.span.longitudeDelta / 2
+        let maxLon = region.center.longitude + region.span.longitudeDelta / 2
+        return events.filter {
+            $0.location.latitude >= minLat && $0.location.latitude <= maxLat
+                && $0.location.longitude >= minLon && $0.location.longitude <= maxLon
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $cameraPosition) {
-                ForEach(viewModel.filteredEvents) { event in
+                ForEach(visibleEvents) { event in
                     Annotation(event.title, coordinate: event.coordinate) {
                         pin(for: event)
                             .onTapGesture { selectedEvent = event }
@@ -20,19 +41,29 @@ struct MapView: View {
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
-            .onAppear {
-                updateMapForFilteredEvents()
+            .onMapCameraChange(frequency: .onEnd) { context in
+                visibleRegion = context.region
             }
-            .onChange(of: viewModel.filteredEvents.map(\.id)) { _, _ in
-                updateMapForFilteredEvents()
+            .onAppear { positionInitiallyIfNeeded() }
+            .onChange(of: homeCoordinate?.latitude) { _, _ in positionInitiallyIfNeeded() }
+            .onChange(of: viewModel.events.count) { _, _ in positionInitiallyIfNeeded() }
+            .onChange(of: viewModel.searchText) { _, text in
+                if !text.isEmpty { frameResults() }
             }
-            .onChange(of: locationManager.userLocation != nil) { _, _ in
-                updateMapForFilteredEvents()
-            }
+            .onChange(of: viewModel.selectedCategoryIds) { _, _ in frameResultsIfFiltering() }
+            .onChange(of: viewModel.selectedDate) { _, _ in frameResultsIfFiltering() }
+            .onChange(of: viewModel.freeOnly) { _, _ in frameResultsIfFiltering() }
+            .onChange(of: viewModel.maxPrice) { _, _ in frameResultsIfFiltering() }
 
             VStack(spacing: 12) {
                 searchBar
                 Spacer()
+                if homeCoordinate != nil {
+                    HStack {
+                        Spacer()
+                        recenterButton
+                    }
+                }
                 if let event = selectedEvent {
                     previewCard(for: event)
                 }
@@ -45,13 +76,23 @@ struct MapView: View {
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(AppColor.textMuted)
-            TextField("Eventos perto de você", text: $viewModel.searchText)
+            TextField("Buscar eventos", text: $viewModel.searchText)
                 .font(AppFont.corpo)
                 .foregroundStyle(AppColor.textoPrimario)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var recenterButton: some View {
+        Button(action: recenter) {
+            Image(systemName: "location.fill")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(AppColor.primaria)
+                .padding(12)
+                .background(.ultraThinMaterial, in: Circle())
+        }
     }
 
     private func pin(for event: Event) -> some View {
@@ -109,23 +150,37 @@ struct MapView: View {
         .buttonStyle(.plain)
     }
 
-    private func updateMapForFilteredEvents() {
-        let events = viewModel.filteredEvents
-        selectedEvent = events.count == 1 ? events.first : nil
-
-        let isFiltering = !viewModel.searchText.isEmpty || viewModel.hasActiveFilters
-
-        if !isFiltering, let userLocation = locationManager.userLocation {
-            withAnimation {
-                cameraPosition = .region(region(around: userLocation, radiusKm: 5))
-            }
-            return
+    private func positionInitiallyIfNeeded() {
+        guard !hasInitialPosition else { return }
+        if let home = homeCoordinate {
+            cameraPosition = .region(region(around: home, radiusKm: 5))
+            hasInitialPosition = true
+        } else if let region = region(for: viewModel.baseFilteredEvents) {
+            cameraPosition = .region(region)
         }
+    }
 
+    private func frameResultsIfFiltering() {
+        guard viewModel.hasActiveFilters else { return }
+        frameResults()
+    }
+
+    private func frameResults() {
+        let events = viewModel.baseFilteredEvents
+        selectedEvent = events.count == 1 ? events.first : nil
         if let region = region(for: events) {
             withAnimation {
                 cameraPosition = .region(region)
             }
+        }
+    }
+
+    private func recenter() {
+        guard let home = homeCoordinate else { return }
+        viewModel.searchText = ""
+        selectedEvent = nil
+        withAnimation {
+            cameraPosition = .region(region(around: home, radiusKm: 5))
         }
     }
 
