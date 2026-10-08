@@ -1,4 +1,3 @@
-
 import Foundation
 import Combine
 
@@ -44,6 +43,8 @@ final class CalendarVM: ObservableObject {
         self.displayedMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
     }
 
+    // MARK: - Cabeçalho
+
     var monthTitle: String {
         let month = calendar.component(.month, from: displayedMonth)
         let year = calendar.component(.year, from: displayedMonth)
@@ -56,6 +57,9 @@ final class CalendarVM: ObservableObject {
         return Array(base[shift...] + base[..<shift])
     }
 
+    // MARK: - Grade do mês
+
+    /// Dias do mês exibido. `nil` são as células vazias antes do dia 1.
     func gridDays() -> [Date?] {
         guard let interval = calendar.dateInterval(of: .month, for: displayedMonth),
               let dayCount = calendar.range(of: .day, in: .month, for: displayedMonth)?.count
@@ -86,19 +90,12 @@ final class CalendarVM: ObservableObject {
         day < calendar.startOfDay(for: now())
     }
 
- 
-    func categoriesByDay(in events: [Event]) -> [Date: [Category]] {
-        var result: [Date: [Category]] = [:]
-        for event in events {
-            let day = calendar.startOfDay(for: event.startsAt)
-            var categories = result[day] ?? []
-            for category in event.categories where !categories.contains(category) {
-                categories.append(category)
-            }
-            result[day] = categories
-        }
-        return result.mapValues { $0.sortedAlphabetically() }
+    /// Dias (início do dia) que têm ao menos um evento. Usado nos pontinhos da grade.
+    func daysWithEvents(in events: [Event]) -> Set<Date> {
+        Set(events.map { calendar.startOfDay(for: $0.startsAt) })
     }
+
+    // MARK: - Navegação
 
     func select(_ day: Date) {
         selectedDate = calendar.startOfDay(for: day)
@@ -116,7 +113,9 @@ final class CalendarVM: ObservableObject {
         selectedDate = calendar.isDate(today, equalTo: start, toGranularity: .month) ? today : start
     }
 
-    
+    // MARK: - Lista
+
+    /// Eventos do dia selecionado em diante, até o fim do mês exibido, agrupados por dia.
     func sections(for events: [Event]) -> [CalendarDaySection] {
         guard let monthEnd = calendar.dateInterval(of: .month, for: displayedMonth)?.end else { return [] }
         let start = calendar.startOfDay(for: selectedDate)
@@ -129,6 +128,7 @@ final class CalendarVM: ObservableObject {
         return grouped.keys.sorted().map { CalendarDaySection(date: $0, events: grouped[$0] ?? []) }
     }
 
+    /// Ex.: "Sáb, 24 Ago"
     func header(for date: Date) -> String {
         let weekday = calendar.component(.weekday, from: date)
         let day = calendar.component(.day, from: date)
@@ -136,6 +136,7 @@ final class CalendarVM: ObservableObject {
         return "\(Self.weekdayNames[weekday - 1]), \(day) \(Self.monthAbbreviations[month - 1])"
     }
 
+    /// Ex.: "22h" ou "19h30"
     func timeText(for date: Date) -> String {
         let hour = calendar.component(.hour, from: date)
         let minute = calendar.component(.minute, from: date)

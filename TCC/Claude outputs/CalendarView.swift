@@ -1,28 +1,27 @@
-
 import SwiftUI
 
 struct CalendarView: View {
     enum Mode {
-        case attendee
-        case producer
+        case attendee   // eventos em que o usuário marcou "Vou"
+        case producer   // eventos criados pelo produtor
     }
-    
+
     let mode: Mode
     let events: [Event]
     let router: Router
-    
+
     @StateObject private var viewModel = CalendarVM()
     @EnvironmentObject private var session: SessionStore
-    
+
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text("Calendário")
                     .font(AppFont.display)
                     .foregroundStyle(AppColor.textoPrimario)
-                
+
                 if session.isAuthenticated {
                     monthHeader
                     monthGrid
@@ -38,7 +37,9 @@ struct CalendarView: View {
         .background(AppColor.fundo.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
     }
-    
+
+    // MARK: - Mês
+
     private var monthHeader: some View {
         HStack {
             Text(viewModel.monthTitle)
@@ -60,12 +61,12 @@ struct CalendarView: View {
         }
         .foregroundStyle(AppColor.secundaria)
     }
-    
+
     private var monthGrid: some View {
-        let marked = viewModel.categoriesByDay(in: events)
+        let marked = viewModel.daysWithEvents(in: events)
         let days = viewModel.gridDays()
-        
-        return VStack(spacing: 5) {
+
+        return VStack(spacing: 8) {
             HStack(spacing: 0) {
                 ForEach(Array(viewModel.weekdayInitials.enumerated()), id: \.offset) { _, initial in
                     Text(initial)
@@ -74,25 +75,25 @@ struct CalendarView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     if let day {
-                        dayCell(day, categories: marked[day])
+                        dayCell(day, hasEvents: marked.contains(day))
                     } else {
-                        Color.clear.frame(height: 40)
+                        Color.clear.frame(height: 48)
                     }
                 }
             }
         }
     }
-    
-    private func dayCell(_ day: Date, categories: [Category]?) -> some View {
+
+    private func dayCell(_ day: Date, hasEvents: Bool) -> some View {
         let selected = viewModel.isSelected(day)
         let past = viewModel.isPast(day)
         let number = viewModel.calendar.component(.day, from: day)
-        
+
         return Button { viewModel.select(day) } label: {
-            VStack(spacing: 5) {
+            VStack(spacing: 3) {
                 ZStack {
                     if selected {
                         Circle().fill(AppColor.primaria)
@@ -103,21 +104,25 @@ struct CalendarView: View {
                         .font(selected ? AppFont.rotulo : AppFont.corpo)
                         .foregroundStyle(selected ? Color.white : (past ? AppColor.textMuted : AppColor.textoPrimario))
                 }
-                .frame(width: 30, height: 30)
-                
-                dayIndicator(categories)
+                .frame(width: 36, height: 36)
+
+                Circle()
+                    .fill(hasEvents ? AppColor.secundaria : Color.clear)
+                    .frame(width: 5, height: 5)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(number)\(categories != nil ? ", com eventos" : "")")
+        .accessibilityLabel("\(number)\(hasEvents ? ", com eventos" : "")")
     }
-    
+
+    // MARK: - Lista
+
     @ViewBuilder
     private var eventList: some View {
         let sections = viewModel.sections(for: events)
-        
+
         if sections.isEmpty {
             emptyState
         } else {
@@ -128,7 +133,7 @@ struct CalendarView: View {
                             .font(AppFont.legenda)
                             .fontWeight(.bold)
                             .foregroundStyle(AppColor.textoPrimario)
-                        
+
                         ForEach(section.events) { event in
                             Button { router.push(.eventDetail(event)) } label: {
                                 CalendarEventRow(
@@ -144,7 +149,7 @@ struct CalendarView: View {
             }
         }
     }
-    
+
     private func badge(for event: Event) -> CalendarBadge? {
         if event.status == .cancelled { return CalendarBadge(text: "Cancelado", color: AppColor.erro) }
         switch mode {
@@ -152,12 +157,13 @@ struct CalendarView: View {
             return CalendarBadge(text: "Vou", color: AppColor.successo)
         case .producer:
             return event.status == .draft
-            ? CalendarBadge(text: "Rascunho", color: AppColor.alerta)
-            : CalendarBadge(text: "Publicado", color: AppColor.successo)
+                ? CalendarBadge(text: "Rascunho", color: AppColor.alerta)
+                : CalendarBadge(text: "Publicado", color: AppColor.successo)
         }
     }
-    
-    
+
+    // MARK: - Estados vazios
+
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "calendar")
@@ -169,14 +175,14 @@ struct CalendarView: View {
             Text(mode == .attendee
                  ? "Marque \"Vou\" em um evento para vê-lo aqui, a partir do dia selecionado."
                  : "Seus eventos a partir do dia selecionado aparecem aqui.")
-            .font(AppFont.legenda)
-            .foregroundStyle(AppColor.textoSecondario)
-            .multilineTextAlignment(.center)
+                .font(AppFont.legenda)
+                .foregroundStyle(AppColor.textoSecondario)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 32)
     }
-    
+
     private var loggedOutState: some View {
         VStack(spacing: 14) {
             Text("Entre para ver seu calendário")
@@ -192,26 +198,5 @@ struct CalendarView: View {
             .background(AppColor.primaria, in: Capsule())
         }
         .padding(.top, 48)
-    }
-    
-    @ViewBuilder
-    private func dayIndicator(_ categories: [Category]?) -> some View {
-        if let categories {
-            let colors = categories.isEmpty
-                ? [AppColor.textoSecondario]
-                : categories.map { CategoryTagView.style(for: $0).base }
-
-            ZStack(alignment: .leading) {
-                ForEach(Array(colors.enumerated()), id: \.offset) { index, color in
-                    Circle()
-                        .fill(color)
-                        .frame(width: 6, height: 6)
-                        .offset(x: CGFloat(index) * 4)
-                }
-            }
-            .frame(width: 6 + CGFloat(colors.count - 1) * 4, height: 4, alignment: .leading)
-        } else {
-            Color.clear.frame(height: 4)
-        }
     }
 }

@@ -18,6 +18,7 @@ struct MainTabView: View {
     @State private var selectedTab: AppTab = .discover
     @StateObject private var producerRouter = Router()
     @StateObject private var manageEventsViewModel = ManageEventVM(repository: SupabaseEventRepository())
+    @StateObject private var calendarRouter = Router()
     private var isProducer: Bool {
         session.currentProfile?.role == .producer
     }
@@ -65,6 +66,13 @@ struct MainTabView: View {
             if tab == .discover || tab == .map {
                 Task { await eventListViewModel.refresh() }
             }
+            if tab == .calendar {
+                if isProducer, let producerId = session.currentProfile?.id {
+                    Task { await manageEventsViewModel.load(producerId: producerId) }
+                } else {
+                    Task { await eventListViewModel.refresh() }
+                }
+            }
         }
     }
 
@@ -84,9 +92,7 @@ struct MainTabView: View {
         .tabItem { Label("Mapa", systemImage: "map") }
         .tag(AppTab.map)
 
-        Text("Calendário")
-            .tabItem { Label("Calendário", systemImage: "calendar") }
-            .tag(AppTab.calendar)
+        calendarTab
 
         Text("Histórico")
             .tabItem { Label("Histórico", systemImage: "clock.arrow.circlepath") }
@@ -107,9 +113,7 @@ struct MainTabView: View {
         .tabItem { Label("Eventos", systemImage: "ticket") }
         .tag(AppTab.producerEvents)
 
-        Text("Calendário")
-            .tabItem { Label("Calendário", systemImage: "calendar") }
-            .tag(AppTab.calendar)
+        calendarTab
 
         ProfileView()
             .tabItem { Label("Perfil", systemImage: "person") }
@@ -140,5 +144,21 @@ struct MainTabView: View {
         case .eventDetail(let event):
             EventDetailView(viewModel: eventListViewModel.detailViewModel(for: event))
         }
+    }
+    
+    @ViewBuilder
+    private var calendarTab: some View {
+        NavigationStack(path: $calendarRouter.path) {
+            CalendarView(
+                mode: isProducer ? .producer : .attendee,
+                events: isProducer
+                    ? manageEventsViewModel.events
+                    : eventListViewModel.events.filter { engagementStore.isGoing($0.id) },
+                router: calendarRouter
+            )
+            .navigationDestination(for: AppRoute.self, destination: destinationView)
+        }
+        .tabItem { Label("Calendário", systemImage: "calendar") }
+        .tag(AppTab.calendar)
     }
 }

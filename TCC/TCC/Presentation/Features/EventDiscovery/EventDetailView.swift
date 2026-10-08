@@ -135,9 +135,11 @@ struct EventDetailView: View {
     }
 
     private var badgesRow: some View {
-        HStack(spacing: 6) {
-            ForEach(event.categories.sortedAlphabetically()) { category in
-                CategoryTagView(category: category)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(event.categories.sortedAlphabetically()) { category in
+                    CategoryTagView(category: category)
+                }
             }
         }
     }
